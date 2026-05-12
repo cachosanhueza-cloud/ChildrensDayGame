@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Juego: Día del Niño 2026</title>
+<style>
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#0d2b4d; color:white; text-align:center; margin:0; touch-action: manipulation; overflow-x: hidden; }
+  
+  /* PANTALLA DE INICIO (LOGIN) */
+  #login-screen {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(135deg, #0d2b4d 0%, #1a4a7a 100%);
+    z-index: 5000; display: flex; flex-direction: column; justify-content: center; align-items: center;
+    overflow-y: auto; padding: 20px 0;
+  }
+  .login-card {
+    background: rgba(255, 255, 255, 0.1); padding: 25px; border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2);
+    max-width: 450px; width: 90%; margin: auto;
+  }
+  .login-card h1 { color: #4facfe; margin-bottom: 5px; font-size: 24px; }
+  .instruction-sub { font-size: 13px; color: rgba(255, 255, 255, 0.6); margin-bottom: 15px; font-style: italic; }
+
+  /* RANKING BOX */
+  #ranking-box {
+    background: rgba(0, 0, 0, 0.4); border-radius: 12px; padding: 15px;
+    margin-bottom: 20px; border: 1px dashed #4facfe; display: none;
+  }
+  .ranking-title { color: #ffcc00; font-weight: bold; font-size: 14px; margin-bottom: 10px; letter-spacing: 1px; }
+  .ranking-table { width: 100%; font-size: 13px; border-collapse: collapse; }
+  .ranking-row { border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .ranking-row:last-child { border-bottom: none; }
+  .pos { width: 30px; font-size: 18px; padding: 5px 0; }
+  .name-rank { text-align: left; padding: 5px; font-weight: 500; }
+  .score-rank { text-align: right; padding: 5px; color: #00c6ff; font-weight: bold; }
+
+  .login-card input {
+    width: 80%; padding: 12px; margin-bottom: 15px; border-radius: 8px;
+    border: none; font-size: 16px; text-align: center; outline: none;
+  }
+  .start-btn {
+    padding: 12px 40px; font-size: 18px; background: #00c6ff;
+    color: white; border: none; border-radius: 50px; cursor: pointer; font-weight: bold;
+  }
+
+  /* INTERFAZ DEL JUEGO */
+  #game-content { display: none; }
+  h2 { margin: 10px 0 5px; color: #4facfe; font-size: 20px; }
+  .topbar { display:flex; justify-content:center; align-items:center; gap:20px; margin: 5px 10px; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 12px; }
+  .timer { font-size: 20px; font-weight: bold; color: #ffcc00; }
+  .game-container { display: flex; gap: 15px; padding: 10px; align-items: flex-start; }
+  .name-source { flex: 0 0 160px; position: sticky; top: 10px; background: rgba(255,255,255,0.1); padding: 12px; border-radius: 15px; border: 2px solid #4facfe; min-height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .draggable-name { padding: 10px 5px; background: #0f69ff; color: white; border-radius: 8px; cursor: grab; font-weight: bold; font-size: 14px; width: 95%; }
+  .photo-grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 15px; }
+  .photo-card { background: #1f4c7a; border-radius: 10px; padding: 4px; border: 2px solid rgba(255,255,255,0.1); position: relative; min-height: 120px; }
+  .photo-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 6px; pointer-events: none; }
+  .assigned-name { margin-top: 4px; font-size: 9px; background: #0b7a2a; padding: 3px; border-radius: 4px; }
+  #rotate-device { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0d2b4d; z-index: 9999; flex-direction: column; justify-content: center; align-items: center; }
+  #overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.95); z-index: 6000; flex-direction: column; justify-content: center; align-items: center; }
+  #submitBtn { padding: 12px 40px; font-size: 16px; background: #00c6ff; color: white; border: none; border-radius: 50px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-card">
+    <h1>🎈 Dinámica Día del Niño</h1>
+    <div class="instruction-sub">Arrastra el nombre a cada personita. ¡Suerte!</div>
+
+    <!-- RANKING DINÁMICO -->
+    <div id="ranking-box">
+      <div class="ranking-title">🏆 TOP 3 LÍDERES ACTUALES 🏆</div>
+      <table class="ranking-table" id="ranking-list">
+        <!-- Los datos se cargan aquí -->
+      </table>
+    </div>
+
+    <p style="margin-bottom: 10px;">Para jugar, ingresa tu nombre:</p>
+    <input type="text" id="inputName" placeholder="Nombre y Apellido" autofocus>
+    <br>
+    <button class="start-btn" onclick="startGame()">COMENZAR JUEGO</button>
+  </div>
+</div>
+
+<div id="rotate-device">
+  <div style="font-size: 50px;">🔄</div>
+  <h3 style="padding: 20px;">Gira tu celular horizontalmente para jugar.</h3>
+</div>
+
+<div id="overlay">
+  <h2 id="statusMsg">Enviando resultados...</h2>
+  <div id="timeUpNotice" style="display:none; color: #ff4d4d; font-weight: bold; margin-bottom: 10px;">¡TIEMPO AGOTADO!</div>
+  <p id="finalDetails"></p>
+  <button onclick="location.reload()" id="closeBtn" style="display:none; padding:10px 20px; border-radius: 8px; background: #4facfe; color: white; border: none; cursor: pointer;">Volver a Intentar</button>
+</div>
+
+<div id="game-content">
+  <h2>📸 ¿Quién es quién?</h2>
+  <div class="topbar">
+    <div id="displayPlayerName" style="font-weight: bold; color: #4facfe;"></div>
+    <div class="timer" id="timer">20:00</div>
+  </div>
+  <div class="game-container">
+    <div class="name-source"><div id="activeNameContainer"></div><p id="counterInfo" style="font-size: 10px; color: #4facfe; margin-top: 10px;"></p></div>
+    <div class="photo-grid" id="photoGrid"></div>
+  </div>
+  <button id="submitBtn" onclick="submitGame(false)">FINALIZAR Y ENVIAR</button>
+</div>
+
+<iframe id="gf_iframe" name="gf_iframe" style="display:none;"></iframe>
+<form id="gf_form" action="https://docs.google.com/forms/d/e/1FAIpQLSdXS2Z1exk97xISzPHK3UtO0wx89eALhMU7EeLrbbUk-8fmyw/formResponse" method="POST" target="gf_iframe">
+  <input type="hidden" name="entry.1605782671" id="gf_name">
+  <input type="hidden" name="entry.1710413261" id="gf_score">
+  <input type="hidden" name="entry.926972941"  id="gf_time">
+  <input type="hidden" name="entry.2137308450" id="gf_attempt">
+</form>
+
+<script>
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS1DSlKTbEe7gyqT2YMbP6xBbXEU4GbMKh_h2mHn4SxS2evsEZGTqwfUUP-NEs4uG6n746xv0itsYI4/pub?gid=792936638&single=true&output=csv";
+const GAME_ID = "baby-match-v1";
+const DURATION_SECONDS = 1200; 
+let playerName = "";
+let locked = false;
+let startTime;
+
+const dataBase = [
+  { n: "1.jpg", nombre: "Adrian Hernandez" }, { n: "2.jpg", nombre: "Adriana Arreola" },
+  { n: "3.jpeg", nombre: "Agatha Pena" }, { n: "4.png", nombre: "Alejandro Padilla" },
+  { n: "5.png", nombre: "Alfonso Mejia" }, { n: "6.jpg", nombre: "Berenice Guevara" },
+  { n: "7.jpg", nombre: "Carlos Trujillo" }, { n: "8.jpeg", nombre: "Cesar Casales" },
+  { n: "9.png", nombre: "Cesar Rafaela" }, { n: "10.jpg", nombre: "Cristian Sanhueza" },
+  { n: "11.jpg", nombre: "Daniel Hernandez" }, { n: "12.jpeg", nombre: "Eduardo Lopez" },
+  { n: "13.jpeg", nombre: "Emerson Cortes" }, { n: "14.jpg", nombre: "Estefani Flores" },
+  { n: "15.jpeg", nombre: "Everardo Martinez" }, { n: "16.jpeg", nombre: "Gabriela Vives" },
+  { n: "17.jpg", nombre: "Iris Soto" }, { n: "18.jpg", nombre: "Jacqueline Torres" },
+  { n: "19.jpg", nombre: "Jessica Salazar" }, { n: "20.jpeg", nombre: "Jonatan Islas" },
+  { n: "21.jpg", nombre: "Judith Arellano" }, { n: "22.jpg", nombre: "Karen Echavarria" },
+  { n: "23.jpg", nombre: "Karen Marin" }, { n: "24.jpg", nombre: "Katherine Granados" },
+  { n: "25.png", nombre: "Luis Javier" }, { n: "26.jpg", nombre: "Luis Perez" },
+  { n: "27.png", nombre: "Maria Ramirez" }, { n: "28.jpeg", nombre: "Mariana Aguilera" },
+  { n: "29.jpeg", nombre: "Nancy Ayala" }, { n: "30.jpg", nombre: "Nayeli Linares" },
+  { n: "31.jpeg", nombre: "Romali Trejo" }, { n: "32.jpeg", nombre: "Rosa Diosdado" },
+  { n: "33.jpg", nombre: "Rosy Marin" }, { n: "34.jpg", nombre: "Silvia Barrios" },
+  { n: "35.jpg", nombre: "Silvia Mora" }, { n: "36.jpg", nombre: "Valeria Valdez" },
+  { n: "37.jpg", nombre: "Wendy Ramos" }, { n: "38.jpeg", nombre: "Yair Oviedo" }
+];
+
+let answers = {}; 
+let pendingNames = dataBase.map(item => item.nombre).sort(() => Math.random() - 0.5);
+
+// FUNCIÓN PARA CARGAR RANKING DESDE EL CSV
+async function loadRanking() {
+  try {
+    const resp = await fetch(SHEET_CSV_URL + "&cachebust=" + Date.now());
+    const text = await resp.text();
+    const rows = text.split("\n").slice(1);
+    let results = [];
+
+    rows.forEach(row => {
+      const cols = row.split(",");
+      if (cols.length >= 4) {
+        const name = cols[1]?.replace(/"/g, "").trim();
+        const score = parseInt(cols[2]);
+        const time = parseInt(cols[3]);
+        if (name && !isNaN(score)) {
+          const existing = results.find(r => r.name.toLowerCase() === name.toLowerCase());
+          if (!existing) {
+            results.push({ name, score, time });
+          } else if (score > existing.score || (score === existing.score && time < existing.time)) {
+            existing.score = score; existing.time = time;
+          }
+        }
+      }
+    });
+
+    results.sort((a, b) => b.score - a.score || a.time - b.time);
+    const top3 = results.slice(0, 3);
+
+    if (top3.length > 0) {
+      const list = document.getElementById("ranking-list");
+      const medals = ["🥇", "🥈", "🥉"];
+      list.innerHTML = top3.map((r, i) => `
+        <tr class="ranking-row">
+          <td class="pos">${medals[i]}</td>
+          <td class="name-rank">${r.name}</td>
+          <td class="score-rank">${r.score} pts (${r.time}s)</td>
+        </tr>`).join("");
+      document.getElementById("ranking-box").style.display = "block";
+    }
+  } catch (e) { console.error("Ranking error:", e); }
+}
+
+function checkOrientation() {
+  const rotateOverlay = document.getElementById("rotate-device");
+  if (window.innerHeight > window.innerWidth && window.innerWidth < 1024) rotateOverlay.style.display = "flex";
+  else rotateOverlay.style.display = "none";
+}
+window.addEventListener("resize", checkOrientation);
+window.addEventListener("load", () => { checkOrientation(); loadRanking(); });
+
+function startGame() {
+  const input = document.getElementById("inputName").value.trim();
+  if (input.length < 3) { alert("Por favor, ingresa tu nombre completo."); return; }
+  playerName = input.toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  document.getElementById("login-screen").style.display = "none";
+  document.getElementById("game-content").style.display = "block";
+  document.getElementById("displayPlayerName").innerText = "Jugador: " + playerName;
+  startTime = Date.now();
+  initGameLogic();
+}
+
+function initGameLogic() {
+  const photoGrid = document.getElementById("photoGrid");
+  [...dataBase].sort(() => Math.random() - 0.5).forEach(item => {
+    const card = document.createElement("div");
+    card.classList.add("photo-card");
+    card.innerHTML = `<img src="fotos/${item.n}" alt="foto">`;
+    card.ondragover = e => e.preventDefault();
+    card.ondrop = e => {
+      if(locked) return;
+      e.preventDefault();
+      const nameText = e.dataTransfer.getData("text");
+      if(answers[item.n]) return;
+      answers[item.n] = nameText;
+      const label = document.createElement("div");
+      label.classList.add("assigned-name");
+      label.innerText = nameText;
+      card.appendChild(label);
+      pendingNames.shift();
+      showNextName();
+    };
+    card.onclick = () => {
+      if(locked || !answers[item.n]) return;
+      const nameToReturn = answers[item.n];
+      delete answers[item.n];
+      card.querySelector('.assigned-name').remove();
+      pendingNames.unshift(nameToReturn);
+      showNextName();
+    };
+    photoGrid.appendChild(card);
+  });
+  showNextName();
+  setInterval(() => {
+    if(locked) return;
+    const left = Math.max(0, DURATION_SECONDS - Math.floor((Date.now() - startTime)/1000));
+    const m = Math.floor(left/60); const s = left % 60;
+    document.getElementById("timer").innerText = `${m}:${s < 10 ? "0"+s : s}`;
+    if(left <= 0) submitGame(true);
+  }, 1000);
+}
+
+function showNextName() {
+  const container = document.getElementById("activeNameContainer");
+  container.innerHTML = "";
+  if(pendingNames.length > 0) {
+    const nameDiv = document.createElement("div");
+    nameDiv.classList.add("draggable-name");
+    nameDiv.innerText = pendingNames[0];
+    nameDiv.draggable = true;
+    nameDiv.ondragstart = e => e.dataTransfer.setData("text", pendingNames[0]);
+    container.appendChild(nameDiv);
+    document.getElementById("counterInfo").innerText = `${Object.keys(answers).length} de ${dataBase.length}`;
+  } else container.innerHTML = "🏁";
+}
+
+function submitGame(isTimeUp) {
+  if(locked) return;
+  locked = true;
+  document.getElementById("overlay").style.display = "flex";
+  if(isTimeUp) document.getElementById("timeUpNotice").style.display = "block";
+  let score = 0;
+  dataBase.forEach(item => { if(answers[item.n] === item.nombre) score++; });
+  const elapsed = Math.floor((Date.now() - startTime)/1000);
+  document.getElementById("gf_name").value = playerName;
+  document.getElementById("gf_score").value = score;
+  document.getElementById("gf_time").value = elapsed;
+  document.getElementById("gf_attempt").value = Date.now();
+  document.getElementById("gf_form").submit();
+  setTimeout(() => {
+    document.getElementById("statusMsg").innerText = "¡Resultados Enviados!";
+    document.getElementById("finalDetails").innerHTML = `Aciertos: ${score} de ${dataBase.length}<br>Tiempo: ${elapsed}s`;
+    document.getElementById("closeBtn").style.display = "block";
+  }, 2000);
+}
+</script>
+</body>
+</html>
