@@ -7,6 +7,19 @@
 <style>
   body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#0d2b4d; color:white; text-align:center; margin:0; touch-action: manipulation; overflow-x: hidden; }
   
+  /* PANTALLA DE CIERRE / EXPIRACIÓN */
+  #closed-screen {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(135deg, #0d2b4d 0%, #000000 100%);
+    z-index: 7000; display: none; flex-direction: column; justify-content: center; align-items: center;
+    padding: 20px;
+  }
+  .closed-card {
+    background: rgba(255, 255, 255, 0.1); padding: 40px; border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.8); border: 2px solid #ffcc00;
+    max-width: 500px; width: 90%;
+  }
+
   /* PANTALLA DE INICIO (LOGIN) */
   #login-screen {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -63,17 +76,26 @@
 </head>
 <body>
 
+<div id="closed-screen">
+  <div class="closed-card">
+    <div style="font-size: 60px; margin-bottom: 20px;">🏆</div>
+    <h1 style="color: #ffcc00;">¡Dinámica Finalizada!</h1>
+    <p style="font-size: 18px; line-height: 1.6;">Muchas felicidades a los ganadores y gracias a todos por participar enviando sus fotos.</p>
+    <div style="margin: 25px 0; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 20px;">
+        <p style="font-size: 14px; opacity: 0.8;">El cuadro de honor definitivo ya ha sido registrado.</p>
+    </div>
+  </div>
+</div>
+
 <div id="login-screen">
   <div class="login-card">
     <h1>🎈 Dinámica Día del Niño</h1>
     <div class="instruction-sub">Arrastra el nombre a cada personita. ¡Suerte!</div>
 
-    <!-- RANKING DINÁMICO -->
     <div id="ranking-box">
       <div class="ranking-title">🏆 TOP 3 LÍDERES ACTUALES 🏆</div>
       <table class="ranking-table" id="ranking-list">
-        <!-- Los datos se cargan aquí -->
-      </table>
+        </table>
     </div>
 
     <p style="margin-bottom: 10px;">Para jugar, ingresa tu nombre:</p>
@@ -117,9 +139,13 @@
 </form>
 
 <script>
+// --- PARÁMETROS DEL JUEGO ---
+// Formato de fecha: AAAA-MM-DD (Año-Mes-Día)
+const FECHA_CIERRE = "2026-05-15"; // Si la fecha de hoy es >= a esta, se bloquea el juego.
 const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS1DSlKTbEe7gyqT2YMbP6xBbXEU4GbMKh_h2mHn4SxS2evsEZGTqwfUUP-NEs4uG6n746xv0itsYI4/pub?gid=792936638&single=true&output=csv";
 const GAME_ID = "baby-match-v1";
 const DURATION_SECONDS = 1200; 
+
 let playerName = "";
 let locked = false;
 let startTime;
@@ -149,7 +175,21 @@ const dataBase = [
 let answers = {}; 
 let pendingNames = dataBase.map(item => item.nombre).sort(() => Math.random() - 0.5);
 
-// FUNCIÓN PARA CARGAR RANKING DESDE EL CSV
+// VERIFICACIÓN DE CIERRE AUTOMÁTICO
+function checkExpiry() {
+    const today = new Date();
+    // Ajustar fecha de cierre para que sea al inicio del día
+    const expiryDate = new Date(FECHA_CIERRE + "T00:00:00");
+    
+    if (today >= expiryDate) {
+        document.getElementById("closed-screen").style.display = "flex";
+        document.getElementById("login-screen").style.display = "none";
+        return true;
+    }
+    return false;
+}
+
+// FUNCIÓN PARA CARGAR RANKING
 async function loadRanking() {
   try {
     const resp = await fetch(SHEET_CSV_URL + "&cachebust=" + Date.now());
@@ -196,8 +236,14 @@ function checkOrientation() {
   if (window.innerHeight > window.innerWidth && window.innerWidth < 1024) rotateOverlay.style.display = "flex";
   else rotateOverlay.style.display = "none";
 }
+
 window.addEventListener("resize", checkOrientation);
-window.addEventListener("load", () => { checkOrientation(); loadRanking(); });
+window.addEventListener("load", () => { 
+    if (!checkExpiry()) {
+        checkOrientation(); 
+        loadRanking(); 
+    }
+});
 
 function startGame() {
   const input = document.getElementById("inputName").value.trim();
